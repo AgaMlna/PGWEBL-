@@ -82,4 +82,56 @@ class PolygonsController extends Controller
     {
         return view('polygons.create');
     }
+
+/**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        $data = [
+            'title' => 'Edit Polygon',
+            'id' => $id,
+        ];
+        return view('Edit-polygon', $data);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        //
+    }
+
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $polygons = $this->polygons->find($id);
+        $imagefile = $polygons ? $polygons->image : null;
+
+
+        if (!$this->polygons->destroy($id)) {
+            return redirect()->route('map')->with('erorr', 'Polygons failed to delete');
+        }
+
+        //Delete image file
+        if ($imagefile != null) {
+            if (file_exists('./storage/images/' . $imagefile)) {
+                unlink('./storage/images/' . $imagefile);
+            }
+        }
+
+        return redirect()->route('map')->with('success', 'Polygons has been deleted');
+    }
 }

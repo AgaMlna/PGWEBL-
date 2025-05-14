@@ -105,11 +105,15 @@ class PolylinesController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit($id)
+    public function edit(string $id)
     {
-        $polyline = $this->polylines->findOrFail($id);
-        return view('polylines.edit', compact('polyline'));
+        $data = [
+            'title' => 'Edit Polyline',
+            'id' => $id,
+        ];
+        return view('Edit-polyline', $data);
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -136,15 +140,31 @@ class PolylinesController extends Controller
         return redirect()->route('map')->with('success', 'Polyline updated successfully');
     }
 
+
+
+
+
+
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(string $id)
     {
+        $polylines = $this->polylines->find($id);
+        $imagefile = $polylines ? $polylines->image : null;
+
+
         if (!$this->polylines->destroy($id)) {
-            return redirect()->route('map')->with('error', 'Failed to delete polyline');
+            return redirect()->route('map')->with('erorr', 'Polylines failed to delete');
         }
 
-        return redirect()->route('map')->with('success', 'Polyline deleted successfully');
+        //Delete image file
+        if ($imagefile != null) {
+            if (file_exists('./storage/images/' . $imagefile)) {
+                unlink('./storage/images/' . $imagefile);
+            }
+        }
+
+        return redirect()->route('map')->with('success', 'Polylines has been deleted');
     }
 }

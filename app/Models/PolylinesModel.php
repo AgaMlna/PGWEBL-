@@ -12,43 +12,71 @@ class PolylinesModel extends Model
 
     public function geojson_polylines()
     {
-        $polylines = DB::table($this->table)
-            ->selectRaw("
-                ST_AsGeoJSON(geom) AS geom,
-                name,
-                description,
-                image,
-                ST_Length(geom, true) AS length_m,
-                ST_Length(geom, true) / 1000 AS length_km,
-                created_at,
-                updated_at
-            ")
+        $polylines = $this->select(DB::raw(
+            'id, st_asgeojson(geom) as geom,
+            name, description, image,
+            created_at,
+            updated_at'
+        ))
             ->get();
 
-        return [
+
+        $geojson = [
             'type' => 'FeatureCollection',
-            'features' => collect($polylines)->map(function ($polyline) {
-                return [
-                    'type' => 'Feature',
-                    'geometry' => json_decode($polyline->geom),
-                    'properties' => [
-                        'name' => $polyline->name,
-                        'description' => $polyline->description,
-                        'image' => $polyline->image,
-                        'length_m' => $polyline->length_m,
-                        'length_km' => $polyline->length_km,
-                        'created_at' => $polyline->created_at,
-                        'updated_at' => $polyline->updated_at
-                    ],
-                ];
-            })->toArray(),
+            'features' => [],
         ];
+
+        foreach ($polylines as $p) {
+            $feature = [
+                'type' => 'Feature',
+                'geometry' => json_decode($p->geom),
+                'properties' => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'description' => $p->description,
+                    'created_at' => $p->created_at,
+                    'updated_at' => $p->updated_at,
+                    'image' => $p->image,
+                ],
+            ];
+            array_push($geojson['features'], $feature);
+        }
+        return $geojson;
     }
 
-    protected $fillable = [
-        'geom',
-        'name',
-        'description',
-        'image',
-    ];
+    public function geojson_polyline($id)
+    {
+        $polylines = $this
+            ->select(DB::raw(
+            'id,
+            st_asgeojson(geom) as geom,
+            name, description, image,
+            created_at,
+            updated_at'
+        ))
+            ->where('id', $id)
+            ->get();
+
+        $geojson = [
+            'type' => 'FeatureCollection',
+            'features' => [],
+        ];
+
+        foreach ($polylines as $p) {
+            $feature = [
+                'type' => 'Feature',
+                'geometry' => json_decode($p->geom),
+                'properties' => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'description' => $p->description,
+                    'created_at' => $p->created_at,
+                    'updated_at' => $p->updated_at,
+                    'image' => $p->image,
+                ],
+            ];
+            array_push($geojson['features'], $feature);
+        }
+        return $geojson;
+    }
 }
