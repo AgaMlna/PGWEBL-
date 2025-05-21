@@ -39,9 +39,12 @@
                     <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Point</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="{{ route('points.store') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('points.update', $id) }}"
+                enctype="multipart/form-data">
                     <div class="modal-body">
                         @csrf
+
+                        @method('PATCH')
 
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
@@ -78,6 +81,7 @@
             </div>
         </div>
     </div>
+@endsection
 
 @section('scripts')
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -130,11 +134,10 @@
                 $('#name').val(properties.name);
                 $('#description').val(properties.description);
                 $('#geom_point').val(objectGeometry);
-                $('#preview-image-point').attr('src', "{{ asset('storage/images') }}/" + properties.images);
+                $('#preview-image-point').attr('src', "{{ asset('storage/images') }}/" + properties.image);
 
                 //menampilkan modal edit
                 $('#editpointModal').modal('show');
-
             });
         });
 
@@ -142,21 +145,28 @@
         var point = L.geoJson(null, {
             onEachFeature: function(feature, layer) {
 
+                //memasukkan layer point ke dalam drawnItems
+                drawnItems.addLayer(layer);
+
+                var properties = feature.properties;
+                var objectGeometry = Terraformer.geojsonToWKT(feature.geometry);
+
+
                 layer.on({
                     click: function(e) {
-                    //menampilkan data ke dalam mdal
-                    $('#name').val(properties.name);
-                    $('#description').val(properties.description);
-                    $('#geom_point').val(objectGeometry);
-                    $('#preview-image-point').attr('src', "{{ asset('storage/images') }}/" + properties.images);
+                        //menampilkan data ke dalam modal
+                        $('#name').val(properties.name);
+                        $('#description').val(properties.description);
+                        $('#geom_point').val(objectGeometry);
+                        $('#preview-image-point').attr('src', "{{ asset('storage/images') }}/" +
+                            properties.image);
 
-                    //menampilkan modal edit
-                    $('#editpointModal').modal('show');
+                        //menampilkan modal edit
+                        $('#editpointModal').modal('show');
                     },
                 });
             },
         });
-
         $.getJSON("{{ route('api.point', $id) }}", function(data) {
             point.addData(data);
             map.addLayer(point);

@@ -2,35 +2,42 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\PolylinesModel;
-use Illuminate\Http\Request;
 
 class PolylinesController extends Controller
 {
+    protected $polylines;
+
     public function __construct()
     {
         $this->polylines = new PolylinesModel();
     }
 
+    /**
+     * Return all polylines as GeoJSON with length.
+     */
     public function index()
     {
         $polylines = DB::table('polylines')
-            ->selectRaw('id, ST_AsGeoJSON(geom) as geom, name, description, image, created_at, updated_at')
+            ->select(
+                'id',
+                DB::raw('ST_AsGeoJSON(geom) AS geom'),
+                'name',
+                'description',
+                'image',
+                DB::raw('ST_Length(geom, true) / 1000 AS length_km'),
+                'created_at',
+                'updated_at'
+            )
             ->get();
 
         return response()->json($polylines);
     }
 
-
-    public function getPolylines()
-    {
-        $polylines = $this->polylines->all();
-        return response()->json($polylines);
-    }
-
     /**
-     * Show the form for creating a new resource.
+     * Show form to create a new polyline.
      */
     public function create()
     {
@@ -38,63 +45,63 @@ class PolylinesController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created polyline.
      */
     public function store(Request $request)
     {
-        // Validasi request
         $request->validate(
             [
-                'name' => 'required|unique:polylines,name',
-                'description' => 'required',
+                'name'          => 'required|unique:polylines,name',
+                'description'   => 'required',
                 'geom_polyline' => 'required',
-                'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+                'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
             ],
             [
-                'name.required' => 'Name is required',
-                'name.unique' => 'Name already exists',
-                'description.required' => 'Description is required',
+                'name.required'          => 'Name is required',
+                'name.unique'            => 'Name already exists',
+                'description.required'   => 'Description is required',
                 'geom_polyline.required' => 'Geometry is required',
-                'image.image'          => 'File harus berupa gambar',
-                'image.mimes'          => 'Format gambar hanya jpeg,png,jpg,gif,svg',
-                'image.max'            => 'Ukuran gambar maksimal 10MB',
+                'image.image'            => 'File must be an image',
+                'image.mimes'            => 'Image format must be jpeg,png,jpg,gif,svg',
+                'image.max'              => 'Max image size is 10MB',
             ]
         );
 
-        //Create image directory if not exsits
-        if (!is_dir('storage/images')) {
-            mkdir('./storage/images', 0777);
+        // Membuat folder penyimpanan jika belum ada
+        $storagePath = storage_path('app/public/images');
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0777, true);
         }
 
-        //Get image file
+        // Upload gambar jika ada
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $name_image = time() . "_polyline." . strtolower($image->getClientOriginalExtension());
-            $image->move('storage/images', $name_image);
+            $file = $request->file('image');
+            $fileName = time() . '_polyline.' . strtolower($file->getClientOriginalExtension());
+            $file->move($storagePath, $fileName);
         } else {
-            $name_image = null;
+            $fileName = null;
         }
-
 
         $data = [
-            'geom' => DB::raw("ST_GeomFromText('" . $request->geom_polyline . "', 4326)"),
-            'name' => $request->name,
+            'geom'        => DB::raw("ST_GeomFromText('{$request->geom_polyline}',4326)"),
+            'name'        => $request->name,
             'description' => $request->description,
-            'image'       => $name_image,
+            'image'       => $fileName,
+            'created_at'  => now(),
+            'updated_at'  => now(),
         ];
 
-        // Gagal
-        $insert = DB::table('polylines')->insert($data);
-        if (!$insert) {
-            return redirect()->route('map')->with('error', 'Polyline failed to add');
+        $inserted = DB::table('polylines')->insert($data);
+
+        if (!$inserted) {
+            return redirect()->route('map')->with('error', 'Failed to add polyline');
         }
 
-        // Berhasil
         return redirect()->route('map')->with('success', 'Polyline has been added');
     }
 
     /**
-     * Display the specified resource.
+     * Display a single polyline.
      */
     public function show($id)
     {
@@ -103,68 +110,89 @@ class PolylinesController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show form to edit polyline.
      */
     public function edit(string $id)
     {
         $data = [
             'title' => 'Edit Polyline',
-            'id' => $id,
+            'id'    => $id,
         ];
-        return view('Edit-polyline', $data);
+
+        return view('edit-polyline', $data);
     }
 
-
     /**
-     * Update the specified resource in storage.
+     * Update polyline with optional image replacement.
      */
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'name' => 'required|unique:polylines,name,' . $id,
-            'description' => 'required',
-            'geom_polyline' => 'required',
-        ]);
+        $polyline = $this->polylines->findOrFail($id);
 
-        $data = [
-            'geom' => DB::raw("ST_GeomFromText('" . $request->geom_polyline . "', 4326)"),
-            'name' => $request->name,
-            'description' => $request->description,
-            'image' => $request->image ?? null,
-        ];
+        $request->validate(
+            [
+                'name'          => 'required|unique:polylines,name,' . $id,
+                'description'   => 'required',
+                'geom_polyline' => 'required',
+                'image'         => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
+            ],
+            [
+                'name.required'          => 'Name is required',
+                'name.unique'            => 'Name already exists',
+                'description.required'   => 'Description is required',
+                'geom_polyline.required' => 'Geometry is required',
+                'image.image'            => 'File must be an image',
+                'image.mimes'            => 'Image format must be jpeg,png,jpg,gif,svg',
+                'image.max'              => 'Max image size is 10MB',
+            ]
+        );
 
-        if (!$this->polylines->where('id', $id)->update($data)) {
-            return redirect()->route('map')->with('error', 'Failed to update polyline');
+        // Buat folder jika belum ada
+        $storagePath = storage_path('app/public/images');
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0777, true);
         }
+
+        // Tangani upload gambar baru
+        if ($request->hasFile('image')) {
+            // Hapus gambar lama jika ada
+            if ($polyline->image && file_exists($storagePath . '/' . $polyline->image)) {
+                unlink($storagePath . '/' . $polyline->image);
+            }
+            $file = $request->file('image');
+            $fileName = time() . '_polyline.' . strtolower($file->getClientOriginalExtension());
+            $file->move($storagePath, $fileName);
+        } else {
+            $fileName = $polyline->image; // pakai gambar lama
+        }
+
+        $this->polylines->where('id', $id)->update([
+            'geom'        => DB::raw("ST_GeomFromText('{$request->geom_polyline}',4326)"),
+            'name'        => $request->name,
+            'description' => $request->description,
+            'image'       => $fileName,
+            'updated_at'  => now(),
+        ]);
 
         return redirect()->route('map')->with('success', 'Polyline updated successfully');
     }
 
-
-
-
-
-
     /**
-     * Remove the specified resource from storage.
+     * Delete a polyline and its image file.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        $polylines = $this->polylines->find($id);
-        $imagefile = $polylines ? $polylines->image : null;
+        $polyline = $this->polylines->findOrFail($id);
+        $storagePath = storage_path('app/public/images');
 
-
-        if (!$this->polylines->destroy($id)) {
-            return redirect()->route('map')->with('erorr', 'Polylines failed to delete');
+        if (!$polyline->delete()) {
+            return redirect()->route('map')->with('error', 'Failed to delete polyline');
         }
 
-        //Delete image file
-        if ($imagefile != null) {
-            if (file_exists('./storage/images/' . $imagefile)) {
-                unlink('./storage/images/' . $imagefile);
-            }
+        if ($polyline->image && file_exists($storagePath . '/' . $polyline->image)) {
+            unlink($storagePath . '/' . $polyline->image);
         }
 
-        return redirect()->route('map')->with('success', 'Polylines has been deleted');
+        return redirect()->route('map')->with('success', 'Polyline deleted successfully');
     }
 }

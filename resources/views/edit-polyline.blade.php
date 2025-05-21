@@ -36,12 +36,15 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="exampleModalLabel">Create Polyline</h1>
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Polyline</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="{{ route('polylines.store') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('polylines.update', $id) }}"
+                enctype="multipart/form-data">
                     <div class="modal-body">
                         @csrf
+
+                        @method('PATCH')
 
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
@@ -78,8 +81,6 @@
             </div>
         </div>
     </div>
-
-
 @endsection
 
 @section('scripts')
@@ -124,22 +125,25 @@
                 var objectGeometry = Terraformer.geojsonToWKT(drawnJSONObject.geometry);
                 console.log(objectGeometry);
 
+
                 // layer properties
                 var properties = drawnJSONObject.properties;
                 console.log(properties);
-                drawnItems.addLayer(layer);
 
                 //menampilkan data ke dalam modal
                 $('#name').val(properties.name);
                 $('#description').val(properties.description);
                 $('#geom_polyline').val(objectGeometry);
-                $('#preview-image-polyline').attr('src', "{{ asset('storage/images') }}/" + properties.images);
+                $('#preview-image-polyline').attr('src', "{{ asset('storage/images') }}/" + properties
+                    .image);
 
-                //menampilkan modal edit
+                // menampilkan modal edit
                 $('#editpolylineModal').modal('show');
 
+                drawnItems.addLayer(layer);
             });
         });
+
 
         /* GeoJSON Polylines */
         var polyline = L.geoJson(null, {
@@ -152,21 +156,28 @@
             },
             onEachFeature: function(feature, layer) {
 
+                //memasukkan layer polyline ke dalam drawnItems
+                drawnItems.addLayer(layer);
+
+                var properties = feature.properties;
+                var objectGeometry = Terraformer.geojsonToWKT(feature.geometry);
+
                 layer.on({
                     click: function(e) {
-                    //menampilkan data ke dalam mdal
-                    $('#name').val(properties.name);
-                    $('#description').val(properties.description);
-                    $('#geom_polyline').val(objectGeometry);
-                    $('#preview-image-polyline').attr('src', "{{ asset('storage/images') }}/" + properties.images);
+                        //menampilkan data ke dalam modal
+                        $('#name').val(properties.name);
+                        $('#description').val(properties.description);
+                        $('#geom_polyline').val(objectGeometry);
+                        $('#preview-image-polyline').attr('src', "{{ asset('storage/images') }}/" +
+                            properties.image);
 
-                    //menampilkan modal edit
-                    $('#editpolylineModal').modal('show');
+                        // menampilkan modal edit
+                        $('#editpolylineModal').modal('show');
                     },
                 });
             },
         });
-        $.getJSON("{{ route('api.polylines', $id) }}", function(data) {
+        $.getJSON("{{ route('api.polyline', $id) }}", function(data) {
             polyline.addData(data);
             map.addLayer(polyline);
             map.fitBounds(polyline.getBounds(), {

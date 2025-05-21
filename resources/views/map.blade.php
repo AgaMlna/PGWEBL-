@@ -260,8 +260,10 @@
         var point = L.geoJson(null, {
             onEachFeature: function(feature, layer) {
 
-                var routedelete = "{{ route('points.destroy', ':id') }}";
-                routedelete = routedelete.replace(':id', feature.properties.id);
+                // blade
+                var routedelete = "{{ route('points.destroy', ':id') }}"; //
+                // JS
+                routedelete = routedelete.replace(':id', feature.properties.id); //
 
                 var routeedit = "{{ route('points.edit', ':id') }}";
                 routeedit = routeedit.replace(':id', feature.properties.id);
@@ -270,22 +272,23 @@
                     "Deskripsi: " + feature.properties.description + "<br>" +
                     "Dibuat: " + feature.properties.created_at + "<br>" +
                     "<img src='{{ asset('storage/images') }}/" + feature.properties.image +
-                    "' width='200' alt=''>" + "<br>" +
+                    "' width='250' alt=''>" + "<br>" +
 
+                    //tombol edit
                     "<div class='row mt-4'>" +
-                    "<div class='col-2'>" +
+                    "<div class='col-2 text-end'>" +
                     "<a href='" + routeedit +
                     "' class='btn btn-warning btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>" +
                     "</div>" +
-                    "<div class='col-2'>" +
 
+                    //tombol hapus
+                    "<div class ='col-6'>" +
                     "<form method='POST' action='" + routedelete + "'>" +
                     '@csrf' + '@method('DELETE')' +
-                    "<button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(`Yakin akan dihapus?`)' ><i class='fa-solid fa-trash-can'></i></button>" +
+                    "<button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(`Are you sure to delete?`)'><i class='fa-solid fa-trash-can'></i></button>" +
                     "</form>" +
                     "</div>" +
                     "</div>";
-
                 layer.on({
                     click: function(e) {
                         point.bindPopup(popupContent);
@@ -306,7 +309,7 @@
         var polyline = L.geoJson(null, {
             style: function(feature) {
                 return {
-                    color: "red", // Warna garis
+                    color: "Orange", // Warna garis
                     weight: 4, // Ketebalan garis
                     opacity: 0.8 // Transparansi garis
                 };
@@ -325,23 +328,24 @@
                     "<img src='{{ asset('storage/images') }}/" + feature.properties.image +
                     "' width='200' alt=''>" + "<br>" +
 
+                    //tombol edit
                     "<div class='row mt-4'>" +
-                    "<div class='col-2'>" +
+                    "<div class='col-2 text-end'>" +
                     "<a href='" + routeedit +
                     "' class='btn btn-warning btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>" +
                     "</div>" +
-                    "<div class='col-2'>" +
 
+                    //tombol hapus
+                    "<div class ='col-6'>" +
                     "<form method='POST' action='" + routedelete + "'>" +
                     '@csrf' + '@method('DELETE')' +
-                    "<button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(`Yakin akan dihapus?`)' ><i class='fa-solid fa-trash-can'></i></button>" +
-                    "</form>" +
-                    "</div>" +
-                    "</div>";
+                    "<button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(`Are you sure to delete?`)'><i class='fa-solid fa-trash-can'></i></button>" +
+                    "</form>"
+                "</div>" +
+                "</div>";
 
                 layer.on({
                     click: function(e) {
-
                         polyline.bindPopup(popupContent);
                     },
                     mouseover: function(e) {
@@ -355,12 +359,14 @@
             map.addLayer(polyline);
         });
 
+
+
         // GeoJSON Polygons
         var polygon = L.geoJson(null, {
             style: function(feature) {
                 return {
-                    color: "#2D336B", // Warna garis tepi polygon
-                    fillColor: "#FBE4D6", // Warna isi polygon
+                    color: "Red", // Warna garis tepi polygon
+                    fillColor: "Orange", // Warna isi polygon
                     weight: 2, // Ketebalan garis tepi
                     opacity: 1, // Transparansi garis tepi
                     fillOpacity: 0.5 // Transparansi warna isi
@@ -381,19 +387,21 @@
                     "<img src='{{ asset('storage/images') }}/" + feature.properties.image +
                     "' width='200' alt=''>" + "<br>" +
 
+                    //tombol edit
                     "<div class='row mt-4'>" +
-                    "<div class='col-2'>" +
+                    "<div class='col-2 text-end'>" +
                     "<a href='" + routeedit +
                     "' class='btn btn-warning btn-sm'><i class='fa-solid fa-pen-to-square'></i></a>" +
                     "</div>" +
-                    "<div class='col-2'>" +
 
+                    //tombol hapus
+                    "<div class ='col-6'>" +
                     "<form method='POST' action='" + routedelete + "'>" +
                     '@csrf' + '@method('DELETE')' +
-                    "<button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(`Yakin akan dihapus?`)' ><i class='fa-solid fa-trash-can'></i></button>" +
-                    "</form>" +
-                    "</div>" +
-                    "</div>";
+                    "<button type='submit' class='btn btn-danger btn-sm' onclick='return confirm(`Are you sure to delete?`)'><i class='fa-solid fa-trash-can'></i></button>" +
+                    "</form>"
+                "</div>"
+                "</div>";
 
                 layer.bindPopup(popupContent);
             },
@@ -401,6 +409,7 @@
         $.getJSON("{{ route('api.polygons') }}", function(data) {
             polygon.addData(data);
             map.addLayer(polygon);
+
         });
         // Group layers
         var baseMaps = {

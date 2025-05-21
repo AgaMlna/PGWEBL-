@@ -31,19 +31,20 @@
 @section('content')
     <div id="map"></div>
 
-
     <!-- Modal Edit Polygon -->
-    <div class="modal fade" id="editpolygonModal" tabindex="-1" aria-labelledby="exampleModalLabel"
-        aria-hidden="true">
+    <div class="modal fade" id="editpolygonModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="exampleModalLabel">Create Polygon</h1>
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Polygon</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="POST" action="{{ route('polygons.store') }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('polygons.update', $id) }}"
+                enctype="multipart/form-data">
                     <div class="modal-body">
                         @csrf
+
+                        @method('PATCH')
 
                         <div class="mb-3">
                             <label for="name" class="form-label">Name</label>
@@ -113,7 +114,7 @@
 
         map.addControl(drawControl);
 
-       map.on('draw:edited', function(e) {
+        map.on('draw:edited', function(e) {
             var layers = e.layers;
 
             layers.eachLayer(function(layer) {
@@ -131,14 +132,15 @@
                 //menampilkan data ke dalam modal
                 $('#name').val(properties.name);
                 $('#description').val(properties.description);
-                $('#polygon').val(objectGeometry);
-                $('#preview-image-polygon').attr('src', "{{ asset('storage/images') }}/" + properties.images);
+                $('#geom_polygon').val(objectGeometry);
+                $('#preview-image-polygon').attr('src', "{{ asset('storage/images') }}/" +
+                    properties.image);
 
                 //menampilkan modal edit
                 $('#editpolygonModal').modal('show');
-
             });
         });
+
 
         // GeoJSON Polygons
         var polygon = L.geoJson(null, {
@@ -152,21 +154,30 @@
                 };
             },
             onEachFeature: function(feature, layer) {
+
+                //memasukkan layer polygon ke dalam drawnItems
+                drawnItems.addLayer(layer);
+
+                var properties = feature.properties;
+                var objectGeometry = Terraformer.geojsonToWKT(feature.geometry);
+
+
                 layer.on({
                     click: function(e) {
-                    //menampilkan data ke dalam mdal
-                    $('#name').val(properties.name);
-                    $('#description').val(properties.description);
-                    $('#geom_polygone').val(objectGeometry);
-                    $('#preview-image-geom_polygone').attr('src', "{{ asset('storage/images') }}/" + properties.images);
+                        //menampilkan data ke dalam modal
+                        $('#name').val(properties.name);
+                        $('#description').val(properties.description);
+                        $('#geom_polygon').val(objectGeometry);
+                        $('#preview-image-polygon').attr('src', "{{ asset('storage/images') }}/" +
+                            properties.image);
 
-                    //menampilkan modal edit
-                    $('#polygon').modal('show');
+                        //menampilkan modal edit
+                        $('#editpolygonModal').modal('show');
                     },
                 });
             },
         });
-        $.getJSON("{{ route('api.polygons', $id) }}", function(data) {
+        $.getJSON("{{ route('api.polygon', $id) }}", function(data) {
             polygon.addData(data);
             map.addLayer(polygon);
             map.fitBounds(polygon.getBounds(), {

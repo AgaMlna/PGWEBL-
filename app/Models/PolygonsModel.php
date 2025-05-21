@@ -12,71 +12,80 @@ class PolygonsModel extends Model
 
     public function geojson_polygons()
     {
-        $polygons = $this->select(DB::raw(
-            'id, st_asgeojson(geom) as geom,
-            name, description, image,
-            created_at,
-            updated_at'
-        ))
+        $polygons = DB::table($this->table)
+            ->selectRaw("
+                id, ST_AsGeoJSON(geom) AS geom,
+                name,
+                description,
+                image,
+                ST_Area(geom, true) AS area_m2,
+                ST_Area(geom, true) / 10000 AS area_ha,
+                created_at,
+                updated_at
+            ")
             ->get();
 
-
-        $geojson = [
+        return [
             'type' => 'FeatureCollection',
-            'features' => [],
+            'features' => collect($polygons)->map(function ($polygon) {
+                return [
+                    'type' => 'Feature',
+                    'geometry' => json_decode($polygon->geom),
+                    'properties' => [
+                        'id' => $polygon->id,
+                        'name' => $polygon->name,
+                        'description' => $polygon->description,
+                        'image' => $polygon->image,
+                        'area_m2' => $polygon->area_m2,
+                        'area_ha' => $polygon->area_ha, // Konversi ke hektar
+                        'created_at' => $polygon->created_at,
+                        'updated_at' => $polygon->updated_at
+                    ],
+                ];
+            })->toArray(),
         ];
-
-        foreach ($polygons as $p) {
-            $feature = [
-                'type' => 'Feature',
-                'geometry' => json_decode($p->geom),
-                'properties' => [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'description' => $p->description,
-                    'created_at' => $p->created_at,
-                    'updated_at' => $p->updated_at,
-                    'image' => $p->image,
-                ],
-            ];
-            array_push($geojson['features'], $feature);
-        }
-        return $geojson;
     }
-
     public function geojson_polygon($id)
     {
-        $polygons = $this
-            ->select(DB::raw(
-            'id,
-            st_asgeojson(geom) as geom,
-            name, description, image,
-            created_at,
-            updated_at'
-        ))
+        $polygons = DB::table($this->table)
+            ->selectRaw("
+                id, ST_AsGeoJSON(geom) AS geom,
+                name,
+                description,
+                image,
+                ST_Area(geom, true) AS area_m2,
+                ST_Area(geom, true) / 10000 AS area_ha,
+                created_at,
+                updated_at
+            ")
             ->where('id', $id)
             ->get();
 
-        $geojson = [
+        return [
             'type' => 'FeatureCollection',
-            'features' => [],
+            'features' => collect($polygons)->map(function ($polygon) {
+                return [
+                    'type' => 'Feature',
+                    'geometry' => json_decode($polygon->geom),
+                    'properties' => [
+                        'id' => $polygon->id,
+                        'name' => $polygon->name,
+                        'description' => $polygon->description,
+                        'image' => $polygon->image,
+                        'area_m2' => $polygon->area_m2,
+                        'area_ha' => $polygon->area_ha, // Konversi ke hektar
+                        'created_at' => $polygon->created_at,
+                        'updated_at' => $polygon->updated_at
+                    ],
+                ];
+            })->toArray(),
         ];
-
-        foreach ($polygons as $p) {
-            $feature = [
-                'type' => 'Feature',
-                'geometry' => json_decode($p->geom),
-                'properties' => [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'description' => $p->description,
-                    'created_at' => $p->created_at,
-                    'updated_at' => $p->updated_at,
-                    'image' => $p->image,
-                ],
-            ];
-            array_push($geojson['features'], $feature);
-        }
-        return $geojson;
     }
+
+    protected $fillable = [
+        'geom',
+        'name',
+        'description',
+        'image',
+    ];
 }

@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class PointsModel extends Model
 {
     protected $table = 'points';
+
     protected $guarded = ['id'];
+
+
 
     public function geojson_points()
     {
@@ -46,16 +49,15 @@ class PointsModel extends Model
 
     public function geojson_point($id)
     {
-        $points = $this
-            ->select(DB::raw(
-            'id,
-            st_asgeojson(geom) as geom,
+        $points = $this->select(DB::raw(
+            'id, st_asgeojson(geom) as geom,
             name, description, image,
             created_at,
             updated_at'
         ))
             ->where('id', $id)
             ->get();
+
 
         $geojson = [
             'type' => 'FeatureCollection',
