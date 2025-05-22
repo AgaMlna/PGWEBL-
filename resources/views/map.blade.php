@@ -27,7 +27,6 @@
     </style>
 @endsection
 
-
 @section('content')
     <div id="map"></div>
 
