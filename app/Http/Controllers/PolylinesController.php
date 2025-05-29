@@ -89,6 +89,7 @@ class PolylinesController extends Controller
             'image'       => $fileName,
             'created_at'  => now(),
             'updated_at'  => now(),
+            'user_id'     => auth()->user()->id,
         ];
 
         $inserted = DB::table('polylines')->insert($data);
